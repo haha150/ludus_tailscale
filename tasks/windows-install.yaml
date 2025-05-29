@@ -23,7 +23,7 @@
       win_package:
         path: '{{ program_files_dir }}\\Tailscale\\tailscale-setup.msi'
         state: present
-        arguments: /quiet TS_INSTALLDIR="{{ program_files_dir }}\\Tailscale"
+        arguments: /qn TS_INSTALLDIR="{{ program_files_dir }}\\Tailscale" TS_NOLAUNCH="true"
 
     - name: Ensure Tailscale service is running
       win_service:
