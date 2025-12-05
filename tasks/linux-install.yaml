@@ -40,7 +40,7 @@
       become: true
 
     - name: Connect to Tailscale network
-      ansible.builtin.command: tailscale up --authkey {{ tailscale_authkey }}
+      ansible.builtin.command: tailscale up --authkey {{ tailscale_authkey }}{{ ' --ssh' if tailscale_ssh | default(false) | bool else '' }}{{ ' --accept-dns=true' if tailscale_dns | default(false) | bool else ' --accept-dns=false' }}
       register: tailscale_up_result
       changed_when: tailscale_up_result.rc == 0
       failed_when: false

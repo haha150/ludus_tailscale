@@ -25,16 +25,36 @@
         state: present
         arguments: /qn TS_INSTALLDIR="{{ program_files_dir }}\\Tailscale" TS_NOLAUNCH="true"
 
-    - name: Ensure Tailscale service is running
+    - name: Stop Tailscale service to ensure clean state
+      win_service:
+        name: Tailscale
+        state: stopped
+
+    - name: Start Tailscale service
       win_service:
         name: Tailscale
         state: started
         start_mode: auto
 
+    - name: Wait for Tailscale service to be ready
+      win_shell: |
+        $retries = 0
+        while ($retries -lt 10) {
+          try {
+            & '{{ program_files_dir }}\Tailscale\tailscale.exe' status | Out-Null
+            exit 0
+          } catch {
+            Start-Sleep -Seconds 2
+            $retries++
+          }
+        }
+        exit 1
+      register: tailscale_ready
+      failed_when: tailscale_ready.rc != 0
+      changed_when: false
+
     - name: Connect to Tailscale network
-      win_command: '"{{ program_files_dir }}\\Tailscale\\tailscale.exe" up --unattended --auth-key {{ tailscale_authkey }}'
-      args:
-        creates: '{{ ansible_env.ProgramData }}\\Tailscale\\tailscaled.state'
+      win_command: '"{{ program_files_dir }}\\Tailscale\\tailscale.exe" up --unattended --auth-key {{ tailscale_authkey }}{{ " --ssh" if tailscale_ssh | default(false) | bool else "" }}{{ " --accept-dns=true" if tailscale_dns | default(false) | bool else " --accept-dns=false" }}'
     - name: Check Tailscale connection status
       win_shell: |
         $status = & '{{ program_files_dir }}\Tailscale\tailscale.exe' status

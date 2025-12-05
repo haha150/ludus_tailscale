@@ -24,6 +24,8 @@ ludus ansible role add -d ./ludus_tailscale
 tailscale_state: present/absent
 tailscale_authkey: "tskey-auth-<REDACTED_KEY>"
 tailscale_api_key: "tskey-api-<REDACTED_KEY>"
+tailscale_ssh: true/false
+tailscale_dns: true/flase
 ```
 ## Deploy role
 - set your config like the one in the example ludus-config.yaml
