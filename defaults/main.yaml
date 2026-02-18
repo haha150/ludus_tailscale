@@ -5,3 +5,4 @@ tailscale_authkey: "tskey-auth-<REDACTED_KEY>"
 tailscale_api_key: "tskey-api-<REDACTED_KEY>"
 tailscale_ssh: false
 tailscale_dns: false
+tailscale_advertise_routes: []

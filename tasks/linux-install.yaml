@@ -1,4 +1,4 @@
-# roles/tailscale_manage/tasks/linux install.yaml
+# roles/tailscale_manage/tasks/linux-install.yaml
 - name: Install Tailscale on Linux
   when: ansible_os_family != "Windows"
   block:
@@ -40,11 +40,36 @@
       become: true
 
     - name: Connect to Tailscale network
-      ansible.builtin.command: tailscale up --authkey {{ tailscale_authkey }}{{ ' --ssh' if tailscale_ssh | default(false) | bool else '' }}{{ ' --accept-dns=true' if tailscale_dns | default(false) | bool else ' --accept-dns=false' }}
+      ansible.builtin.command: >
+        tailscale up
+        --authkey {{ tailscale_authkey }}
+        {{ ' --ssh' if tailscale_ssh | default(false) | bool else '' }}
+        {{ ' --accept-dns=true' if tailscale_dns | default(false) | bool else ' --accept-dns=false' }}
+        {{ '--advertise-routes=' + (tailscale_advertise_routes | join(',')) if (tailscale_advertise_routes | default([]) | length > 0) else '' }}
       register: tailscale_up_result
       changed_when: tailscale_up_result.rc == 0
       failed_when: false
       become: true
+
+    - name: Enable IP forwarding for subnet routes (IPv4)
+      ansible.builtin.sysctl:
+        name: net.ipv4.ip_forward
+        value: '1'
+        state: present
+        sysctl_file: /etc/sysctl.d/99-tailscale.conf
+        reload: yes
+      become: true
+      when: tailscale_advertise_routes | default([]) | length > 0
+
+    - name: Enable IP forwarding for subnet routes (IPv6)
+      ansible.builtin.sysctl:
+        name: net.ipv6.conf.all.forwarding
+        value: '1'
+        state: present
+        sysctl_file: /etc/sysctl.d/99-tailscale.conf
+        reload: yes
+      become: true
+      when: tailscale_advertise_routes | default([]) | length > 0
 
     - name: Display Tailscale connection result
       ansible.builtin.debug:

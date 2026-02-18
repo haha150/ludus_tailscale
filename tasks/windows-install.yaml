@@ -2,6 +2,7 @@
 - name: Determine system architecture for Windows
   set_fact:
     is_64bit: "{{ ansible_architecture in ['x86_64', 'amd64'] or ansible_env.PROCESSOR_ARCHITECTURE == 'AMD64' }}"
+
 - name: Install Tailscale on Windows
   block:
     - name: Set Windows-specific variables
@@ -54,7 +55,40 @@
       changed_when: false
 
     - name: Connect to Tailscale network
-      win_command: '"{{ program_files_dir }}\\Tailscale\\tailscale.exe" up --unattended --auth-key {{ tailscale_authkey }}{{ " --ssh" if tailscale_ssh | default(false) | bool else "" }}{{ " --accept-dns=true" if tailscale_dns | default(false) | bool else " --accept-dns=false" }}'
+      win_command: >
+        "{{ program_files_dir }}\\Tailscale\\tailscale.exe" up
+        --unattended
+        --auth-key {{ tailscale_authkey }}
+        {{ " --ssh" if tailscale_ssh | default(false) | bool else "" }}
+        {{ " --accept-dns=true" if tailscale_dns | default(false) | bool else " --accept-dns=false" }}
+        {{ "--advertise-routes=" + (tailscale_advertise_routes | default([]) | join(',')) if (tailscale_advertise_routes | default([]) | length > 0) else "" }}
+      register: tailscale_up_result
+      changed_when: tailscale_up_result.rc == 0
+      failed_when: false
+
+    - name: Enable IP forwarding for subnet routes (IPv4) on Windows
+      win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
+        name: IPEnableRouter
+        data: 1
+        data_type: dword
+        state: present
+      when: tailscale_advertise_routes | default([]) | length > 0
+
+    - name: Enable IP forwarding for subnet routes (IPv6) on Windows
+      win_regedit:
+        path: HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters
+        name: IPv6Forward
+        data: 1
+        data_type: dword
+        state: present
+      when: tailscale_advertise_routes | default([]) | length > 0
+
+    - name: Restart network to apply forwarding changes
+      win_shell: Restart-NetAdapter -Confirm:$false
+      when: tailscale_advertise_routes | default([]) | length > 0
+      ignore_errors: true
+
     - name: Check Tailscale connection status
       win_shell: |
         $status = & '{{ program_files_dir }}\Tailscale\tailscale.exe' status

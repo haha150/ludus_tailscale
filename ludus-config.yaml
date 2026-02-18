@@ -38,6 +38,8 @@ ludus:
       tailscale_state: absent
       tailscale_authkey: "tskey-auth-<REDACTED_KEY>"
       tailscale_api_key: "tskey-api-<REDACTED_KEY>"
+      tailscale_advertise_routes:
+        - "192.168.86.0/24" 
 network:
   inter_vlan_default: ACCEPT
   rules:
