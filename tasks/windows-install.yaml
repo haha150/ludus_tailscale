@@ -71,7 +71,7 @@
         path: HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip\Parameters
         name: IPEnableRouter
         data: 1
-        data_type: dword
+        type: dword
         state: present
       when: tailscale_advertise_routes | default([]) | length > 0
 
@@ -80,7 +80,7 @@
         path: HKLM:\SYSTEM\CurrentControlSet\Services\Tcpip6\Parameters
         name: IPv6Forward
         data: 1
-        data_type: dword
+        type: dword
         state: present
       when: tailscale_advertise_routes | default([]) | length > 0
 
